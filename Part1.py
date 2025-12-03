@@ -28,6 +28,7 @@ def f(x, t): #source function easily changable when defined separately
 
 
 #basic functions + mesh
+
 # create mesh/grid for domain using N, nodes (starting case N=11)
 #   discretize domain into elements
 #   Uniform mesh nodes -> x_i = x_0+i(h) w/ h = (x_end - x_0)/(N-1)
