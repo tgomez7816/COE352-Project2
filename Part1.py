@@ -27,15 +27,23 @@ import numpy
 
 
 #element + matrices creation
-#  local mass entry
-#  locak stiffness entry
-#2nd order Gaussian quadrature
-#  reference element mapping -> apply quadrature to matrix entries
-# global mass + stiffness matrix
+# local mass entry
+# locak stiffness entry
+# 2nd order Gaussian quadrature
+#   reference element mapping -> apply quadrature to matrix entries
+#   global mass + stiffness matrix
 
 
 #time integration
-#backward vs. forward euler
+# backward euler -> better for stiff eqs
+# at each time step
+#   apply inital condition t=0
+#     set sol vector u^0 
+#   apply dirichlet boundary conditions
+#     mod matrix -> all entries @row k to 0 except A_kk = 1
+#     set corresponding entry in r.h.s to boundary value
+#   integrate r.h.s -> load vector + gaussian quadrature
+#   update solution using backward euler 
 
 
 #generalization
