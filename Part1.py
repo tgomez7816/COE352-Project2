@@ -1,17 +1,30 @@
-import numpy
+import numpy as np
 
 #problem set up
 # spatial domain (0,1) + time domain (0,1)
+x_s, x_n = 0.0, 1.0 
+t_s, t_n = 0.0, 1.0
 # interval divided into N-1 sections
-#   nodes @ x_i = i(h) -> h = 1/(N-1)
+N = 11 #easy variable to change
+x = np.linspace(x_s, x_n)
+h = (x_n - x_s)/(N-1) # equally spaced nodes
 # inital conditon -> u(x,0)=sin(pix)
+def init_con(x):
+    return #enter sin(pix)
+u_0 = init_con(x)
+
 #   create sol vector u_i^0=sin(pix_i) [starting pt for time integration]
 # dirichlet boundary conditions
+def bc_l(t):
+
+def bc_r(t):
+
 #   set sol to zero at boundary nodes for all time steps -> u(0,t)=u(1,t)=0
 #     change global matrix to zero except for diagional (set = to 1, w/r.h.s = 0 for those nodes)
 # define source funct.
 #   eval source @ each time step -> contribute to r.h.s of system
 #   allow for general f(x,t) -> make general funct. def
+def f(x, t): #source function easily changable when defined separately 
 
 
 #basic functions + mesh
