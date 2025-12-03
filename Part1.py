@@ -27,6 +27,11 @@ import numpy
 
 
 #element + matrices creation
+#  local mass entry
+#  locak stiffness entry
+#2nd order Gaussian quadrature
+#  reference element mapping -> apply quadrature to matrix entries
+# global mass + stiffness matrix
 
 
 #time integration
