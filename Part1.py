@@ -1,70 +1,121 @@
 import numpy as np
+from scipy.linalg import solve
+import matplotlib.pyplot as plt
 
-#problem set up
-# spatial domain (0,1) + time domain (0,1)
-x_s, x_n = 0.0, 1.0 
-t_s, t_n = 0.0, 1.0
-# interval divided into N-1 sections
-N = 11 #easy variable to change
-x = np.linspace(x_s, x_n)
-h = (x_n - x_s)/(N-1) # equally spaced nodes
-# inital conditon -> u(x,0)=sin(pix)
-def init_con(x):
-    return #enter sin(pix)
-u_0 = init_con(x)
+#domain and n nodes
+N = 11  #n (can be changed)
+x_start, x_end = 0.0, 1.0  #domain in x
+t_start, t_end = 0.0, 1.0  #time interval
+dx = (x_end - x_start) / (N - 1)  #element size
+x_nodes = np.linspace(x_start, x_end, N)  #node position
 
-#   create sol vector u_i^0=sin(pix_i) [starting pt for time integration]
-# dirichlet boundary conditions
-def bc_l(t):
+#time step parameters
+dt = 0.01  #step size
+num_steps = int((t_end - t_start) / dt)
 
-def bc_r(t):
+#define the r.h.s f(x, t)
+def f(x, t):
+    return (np.pi**2 - 1) * np.exp(-t) * np.sin(np.pi * x)
 
-#   set sol to zero at boundary nodes for all time steps -> u(0,t)=u(1,t)=0
-#     change global matrix to zero except for diagional (set = to 1, w/r.h.s = 0 for those nodes)
-# define source funct.
-#   eval source @ each time step -> contribute to r.h.s of system
-#   allow for general f(x,t) -> make general funct. def
-def f(x, t): #source function easily changable when defined separately 
+#initial condition u(x, 0) = sin(pi x)
+def initial_condition(x):
+    return np.sin(np.pi * x)
 
+#dirichlet boundary conditions
+def boundary_left(t):
+    return 0.0
 
-#basic functions + mesh
+def boundary_right(t):
+    return 0.0
 
-# create mesh/grid for domain using N, nodes (starting case N=11)
-#   discretize domain into elements
-#   Uniform mesh nodes -> x_i = x_0+i(h) w/ h = (x_end - x_0)/(N-1)
-#     element defined by 2 nodes (e_j is bounded by x_i and x_i+1)
-# construct 1D lagrange basis funct.s for nodes
-# map each element from physical space to the parent space for integration
-#   linear mapping -> parent coordinate squiggle included on [-1,1]
-#   jacobian
-#   isoparametric mapping
+#2-point Gaussian quadrature points + weights [-1, 1]
+gauss_pts = np.array([-1/np.sqrt(3), 1/np.sqrt(3)])
+gauss_wts = np.array([1.0, 1.0])
 
+#basis functions and their derivatives for linear elements
+def lagrange_basis(xi):
+    # xi: local coordinate in [-1, 1]
+    N = np.array([(1 - xi) / 2, (1 + xi) / 2])
+    dN_dxi = np.array([-0.5, 0.5])
+    return N, dN_dxi
 
-#element + matrices creation
-# local mass entry
-# locak stiffness entry
-# 2nd order Gaussian quadrature
-#   reference element mapping -> apply quadrature to matrix entries
-#   global mass + stiffness matrix
+#global mass and stiffness matrices
+M = np.zeros((N, N))  # Mass 
+K = np.zeros((N, N))  # Stiffness 
 
+for elem in range(N - 1):
+    #node index for element
+    n1, n2 = elem, elem + 1
+    #n positions
+    x1, x2 = x_nodes[n1], x_nodes[n2]
+    #jacobian for mapping [-1, 1] to [x1, x2]
+    J = (x2 - x1) / 2
 
-#time integration
-# backward euler -> better for stiff eqs
-# at each time step
-#   apply inital condition t=0
-#     set sol vector u^0 
-#   apply dirichlet boundary conditions
-#     mod matrix -> all entries @row k to 0 except A_kk = 1
-#     set corresponding entry in r.h.s to boundary value
-#   integrate r.h.s -> load vector + gaussian quadrature
-#   update solution using backward euler 
+    #local mass and stiffness
+    M_loc = np.zeros((2, 2))
+    K_loc = np.zeros((2, 2))
 
+    #gaussian quadrature integration
+    for k in range(2):
+        xi = gauss_pts[k]
+        w = gauss_wts[k]
+        N_vals, dN_dxi = lagrange_basis(xi)
+        #map derivative to physical space
+        dN_dx = dN_dxi / J
 
-#generalization
+        #compute local mass and stiffness contributions
+        M_loc += np.outer(N_vals, N_vals) * J * w
+        K_loc += np.outer(dN_dx, dN_dx) * J * w
 
+    #global matrices
+    M[n1:n2+1, n1:n2+1] += M_loc
+    K[n1:n2+1, n1:n2+1] += K_loc
 
-#output/visual
+#sol vector
+u = initial_condition(x_nodes)
 
+#time step loop
+for step in range(num_steps):
+    t = t_start + step * dt
 
-#test/validation
+    #rhs vector (load vector)
+    F = np.zeros(N)
+    for elem in range(N - 1):
+        n1, n2 = elem, elem + 1
+        x1, x2 = x_nodes[n1], x_nodes[n2]
+        J = (x2 - x1) / 2
+        F_loc = np.zeros(2)
+        for k in range(2):
+            xi = gauss_pts[k]
+            w = gauss_wts[k]
+            N_vals, _ = lagrange_basis(xi)
+            #map local xi to physical x
+            x_phys = ((1 - xi) * x1 + (1 + xi) * x2) / 2
+            f_val = f(x_phys, t)
+            F_loc += N_vals * f_val * J * w
+        F[n1:n2+1] += F_loc
 
+    #lhs matrix for implicit Euler: M + dt*K
+    A = M + dt * K
+    #rhs vector
+    b = M @ u + dt * F
+
+    #dirichlet boundary conditions
+    A[0, :] = 0
+    A[0, 0] = 1
+    b[0] = boundary_left(t + dt)
+    A[-1, :] = 0
+    A[-1, -1] = 1
+    b[-1] = boundary_right(t + dt)
+
+    #solve linear system
+    u = solve(A, b)
+
+#plot
+plt.plot(x_nodes, u, label='Numerical')
+plt.plot(x_nodes, np.exp(-t_end) * np.sin(np.pi * x_nodes), '--', label='Analytic')
+plt.xlabel('x')
+plt.ylabel('u(x, t)')
+plt.legend()
+plt.title('1D Heat Equation Solution at t = {:.2f}'.format(t_end))
+plt.show()
